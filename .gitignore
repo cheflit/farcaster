@@ -29,3 +29,5 @@ __pycache__/
 # Java / C / C++
 *.class
 *.o
+
+/node_modules/
