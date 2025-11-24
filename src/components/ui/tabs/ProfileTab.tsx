@@ -10,6 +10,8 @@ import { Button } from "~/components/ui/button";
 
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useMiniApp } from "@neynar/react";
+import { useEffect, useState } from "react";
+import React from "react";
 
 export function ProfileTab() {
   const { balance, bets, stats, addCoins, updateBetStatus } = useWallet();
@@ -27,6 +29,47 @@ export function ProfileTab() {
   const hasFarcaster = !!farcasterUser;
   const hasWallet = isConnected;
   const isLoggedIn = hasWallet || hasFarcaster;
+
+  const [profileImage, setProfileImage] = React.useState<string | null>(
+      farcasterUser?.profileImage ?? null,
+  );
+
+  useEffect(() => {
+      let cancelled = false;
+
+      if (farcasterUser?.pfp_url) {
+          setProfileImage(farcasterUser?.pfp_url);
+          return () => {
+              cancelled = true;
+          }
+      }
+
+      const fid = farcasterUser?.fid ?? farcasterUser?.viewer?.fid;
+      if (!fid) {
+            setProfileImage(null);
+            return () => {
+                cancelled = true;
+            };
+      }
+
+      (async () => {
+          try {
+              const res = await fetch(`/api/farcaster/profile?fid=${fid}`);
+              if (!res.ok) return;
+              const data = await res.json();
+              if (!cancelled && data?.pfp_url) {
+                    setProfileImage(data.pfp_url);
+              }
+          } catch (error) {
+              console.log("Failed to fetch Farcaster user data:", error);
+          }
+      })();
+
+      return () => {
+          cancelled = true
+      };
+  }, [farcasterUser?.fid, farcasterUser?.pfp_url]);
+
 
   // Get specific connectors
   const metaMaskConnector = connectors.find((c) =>
